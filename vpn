@@ -1,0 +1,59 @@
+#!/bin/bash 
+#
+
+CMD=/usr/local/sbin/openvpn
+CONFDIR=/etc/openvpn
+CONFIG=client.conf
+USAGE="Usage: $(basename $0) {start|stop|status}"
+
+[ ! -x "${CMD}" ] && echo "Cannot find openvpn command,check your installation." && exit 3
+[ ! -d "${CONFDIR}" ] && echo "Cannot find openvpn config dir, exit now." && exit 5
+[ ! -f "${CONFDIR}/${CONFIG}" ] && echo "cannot find openvpn config file, exit now." && exit 7
+
+start(){
+    status 1>/dev/null
+    if [ $? -eq 44 ];then
+        cd ${CONFDIR}
+        nohup ${CMD} --config ${CONFDIR}/${CONFIG} & >/dev/null
+    else
+        echo "openvpn is running, DON'T try to start it again."
+        exit 11
+    fi
+}
+
+stop(){
+    #killall openvpn >/dev/null
+    status 1>/dev/null
+    if [ $? -eq 44 ];then
+        echo "you need start openvpn service before stop it."
+        exit 9
+    else
+        kill -9 `ps -ef|grep openvpn |grep config |grep -v grep |awk '{print $2}'` 2>&1
+    fi
+}
+
+status(){
+    PID=`ps -ef|grep openvpn |grep config |grep -v grep |awk '{print $2}'`
+    if [ "${PID}" = "" ];then
+        echo "openvpn is stopped."
+        return 44
+    else 
+        echo "openvpn is running, pid=${PID}."
+        return 88
+    fi
+}
+
+case $1 in 
+    start)
+        start
+    ;;
+    stop)
+        stop
+    ;;
+    status)
+        status
+    ;;
+    *)
+        echo "${USAGE}" >&2
+    ;;
+esac
